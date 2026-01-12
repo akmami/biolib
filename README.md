@@ -1,0 +1,3 @@
+# BioLib
+
+Standalone bioinformatics library.

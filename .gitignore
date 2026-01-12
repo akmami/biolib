@@ -1,1 +1,6 @@
 .vscode
+data
+out
+bin
+sketch/*.tmp
+test.c
