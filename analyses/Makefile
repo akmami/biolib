@@ -110,9 +110,11 @@ errSim: mkdir_bin mkdir_out
 	$(GXX) $(CXXFLAGS) -o $(SIMULATE) $(SIMULATE).o
 	@rm $(SIMULATE).o
 	@mv $(SIMULATE) $(EXECUTABLE_DIR)
-	@rm -rf ../data/sim
+	@rm -rf ../data/sim/*
 	@mkdir -p ../out/err-sim
 	echo "Output -> ../out/err-sim/$(SIMULATE)-short-blend-output.txt"
 	date > $(OUT_DIR)/err-sim/$(SIMULATE)-short-blend-output.txt
-	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -g -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-short-blend-output.txt 2>&1
-	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -a -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-short-blend-output.txt 2>&1
+ 	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -g -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-short-blend-output.txt 2>&1
+	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -a --blend --short -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-short-blend-output.txt 2>&1
+	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -a --blend --hifi -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-short-blend-output.txt 2>&1
+	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -a --h-min -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-short-blend-output.txt 2>&1

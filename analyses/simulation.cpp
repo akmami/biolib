@@ -28,7 +28,6 @@
 
 #define READ_COUNT 10000
 #define READ_COUNT_BREAKPOINT 1000
-
 #define PROGRESS 0
 
 
@@ -397,7 +396,7 @@ int cmp_match(const void *a, const void *b) {
     return x->read_pos - y->read_pos;
 }
 
-void evaluate(const minimizer_sketch *ref, const minimizer_sketch *read, int *TP, int *FP, int *FN) {
+void evaluate(const minimizer_sketch *ref, const minimizer_sketch *read, int *TP, int *FP, int *FN, params *p) {
 
     /* ----------------------------
        1. Collect candidate matches
@@ -416,17 +415,34 @@ void evaluate(const minimizer_sketch *ref, const minimizer_sketch *read, int *TP
 
     for (uint64_t i = 0; i < ref->count; i++) {
         for (uint64_t j = 0; j < read->count; j++) {
-            if (GET_128_KMER(ref->anchors[i]) == GET_128_KMER(read->anchors[j])) {
-                matches[m].ref_pos = GET_128_INDEX(ref->anchors[i]);
-                matches[m++].read_pos = GET_128_INDEX(read->anchors[j]);
+            if (p->sketch_type == HMIN) {
+                if (GET_128_KMER(ref->anchors[i]) == GET_128_KMER(read->anchors[j])) {
+                    matches[m].ref_pos = GET_128_INDEX(ref->anchors[i]);
+                    matches[m++].read_pos = GET_128_INDEX(read->anchors[j]);
 
-                if (m == capacity) {
-                    capacity *= 2;
-                    matches = (match *)realloc(matches, capacity * sizeof(match));
+                    if (m == capacity) {
+                        capacity *= 2;
+                        matches = (match *)realloc(matches, capacity * sizeof(match));
 
-                    if (!matches) {
-                        fprintf(stderr, "realloc failed\n");
-                        exit(-1);
+                        if (!matches) {
+                            fprintf(stderr, "realloc failed\n");
+                            exit(-1);
+                        }
+                    }
+                }
+            } else if (p->sketch_type == BLEND) {
+                if (BLEND_GET_KMER(ref->anchors[i]) == BLEND_GET_KMER(read->anchors[j])) {
+                    matches[m].ref_pos = BLEND_GET_INDEX(ref->anchors[i]);
+                    matches[m++].read_pos = BLEND_GET_INDEX(read->anchors[j]);
+
+                    if (m == capacity) {
+                        capacity *= 2;
+                        matches = (match *)realloc(matches, capacity * sizeof(match));
+
+                        if (!matches) {
+                            fprintf(stderr, "realloc failed\n");
+                            exit(-1);
+                        }
                     }
                 }
             }
@@ -534,6 +550,8 @@ int main(int argc, char **argv) {
             );
         }
 
+        printf("\n");
+
         for (int e = 0; e < n_rates; e++) {
 
             printf("\nError rate %.1f%c\n", error_rates[e] * 100, '%');
@@ -592,7 +610,7 @@ int main(int argc, char **argv) {
                 }
 
                 int temp_TP, temp_FP, temp_FN;
-                evaluate(&ref_sk, &read_sk, &temp_TP, &temp_FP, &temp_FN);
+                evaluate(&ref_sk, &read_sk, &temp_TP, &temp_FP, &temp_FN, &p);
 
                 double temp_precision = temp_TP / (double)(temp_TP + temp_FP + 1e-9);
                 double temp_recall = temp_TP / (double)(temp_TP + temp_FN + 1e-9);
@@ -618,8 +636,6 @@ int main(int argc, char **argv) {
                     fflush(stdout);
                 }
             }
-
-            printf("\n");
 
             TP = TP / read_count;
             FP = FP / read_count;

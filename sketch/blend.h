@@ -13,6 +13,10 @@ extern "C" {
 #include <x86intrin.h>
 
 
+#define BLEND_GET_KMER(minimizer) ((minimizer).x >> 14)
+#define BLEND_GET_LENGTH(minimizer) ((minimizer).x & 0x3FFF)
+#define BLEND_GET_INDEX(minimizer) (((minimizer).y & 0xFFFFFFFF) >> 1)
+
 // Source: https://stackoverflow.com/a/21673221
 static inline __m256i movemask_inverse(const uint32_t hash_value) {
     __m256i vmask = _mm256_set1_epi32(hash_value);

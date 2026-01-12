@@ -6,12 +6,9 @@
 #include "../sketch/blend.h"
 #include "utils.h"
 
+
 #define BLEND_BITS_HIFI 32
 #define BLEND_NEIGHBOR_NUMBER_HIFI 5
-
-#define BLEND_GET_KMER(minimizer) ((minimizer).x >> 14)
-#define BLEND_GET_LENGTH(minimizer) ((minimizer).x & 0x3FFF)
-#define BLEND_GET_INDEX(minimizer) (((minimizer).y & 0xFFFFFFFF) >> 1)
 
 void analyze(uint128_t *minimizers, uint64_t len,
              int &contiguous_counts,
