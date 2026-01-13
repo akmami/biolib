@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <set>
+#include <unordered_map>
 #include "../sketch/blend.h"
 #include "utils.h"
 
@@ -89,7 +89,7 @@ void process(std::string &sequence,
              int window, int kmer_size,
              int &core_counts,
              int &contiguous_counts,
-             std::set<uint32_t> &distinct_cores,
+             std::unordered_map<uint32_t, size_t> &distinct_cores,
              std::chrono::milliseconds &durations,
              int (&distances)[DISTANCE_LENGTH],
              std::vector<uint32_t> &distancesXL,
@@ -117,7 +117,7 @@ void process(std::string &sequence,
 	analyze(minimizers, minimizers_len, contiguous_counts, distances, distancesXL, distance_gaps, lengths, lengthsXL, length_gaps, overlap_lengths, overlap_lengthsXL, overlap_length_gaps);
 
     for (uint64_t index = 0; index < minimizers_len; index++) {
-        distinct_cores.insert(BLEND_GET_KMER(minimizers[index]));
+        distinct_cores[BLEND_GET_KMER(minimizers[index])]++;
     }
 
 	std::cout << "Length of the processed sequence: " << format_int(sequence.size()) << std::endl;
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
     // section 1
     int core_counts = 0;
 	int contiguous_counts = 0;
-    std::set<uint32_t> distinct_cores;
+    std::unordered_map<uint32_t, size_t> distinct_cores;
     std::chrono::milliseconds durations;
 	// section 2
     int distances[DISTANCE_LENGTH] = {0};
@@ -212,6 +212,14 @@ int main(int argc, char **argv) {
 		genome.close();
 	}
 
+	size_t count_once = 0;
+
+	for (const auto& [value, count] : distinct_cores) {
+		if (count == 1) {
+			++count_once;
+		}
+	}
+
 	// Total Cores
 	std::cout << "Total \\# Cores: " << format_int(core_counts) << std::endl;
 
@@ -219,10 +227,13 @@ int main(int argc, char **argv) {
 	std::cout << "Contiguous Cores: " << format_int(contiguous_counts) << std::endl;
 
 	// Distinct Cores
-    std::cout << "Unique Cores: " << format_int(distinct_cores.size()) << std::endl;
+    std::cout << "Distinct Cores: " << format_int(distinct_cores.size()) << std::endl;
 
-	// Distinctness Ratio
-    std::cout << "Distinctness %: " << format_double(((double)distinct_cores.size()) / ((double)contiguous_counts)) << std::endl;
+	// Unique Cores
+    std::cout << "Unique Cores: " << format_int(count_once) << std::endl;
+
+	// Uniqueness Ratio
+    std::cout << "Uniqueness %: " << format_double(((double)count_once) / ((double)core_counts)) << std::endl;
 
 	// Execution Time
 	std::cout << "Exec. Time (sec): " << format_double(((double)durations.count()) / 1000) << std::endl;

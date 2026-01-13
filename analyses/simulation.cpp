@@ -315,37 +315,32 @@ int sample_geometric(double p_extend) {
     return len;
 }
 
-int simulate_errors(const char *ref, char *read, int len, double snp_rate, double indel_rate) {
+int simulate_errors(const char *ref, char *read, int len, double snp_rate, int *edit_distance) {
+    int count = 0;
     int r = 0;
     for (int i = 0; i < len; i++) {
         double p = (double)rand() / RAND_MAX;
-
-        if (p < indel_rate) {
-            int len = sample_geometric(0.7);  // realistic extension prob
-
-            if (rand() % 2) {
-                /* insertion */
-                for (int k = 0; k < len; k++)
-                    read[r++] = rand_base();
-            } else {
-                /* deletion */
-                i += len - 1;
-            }
+        
+        if (p < 0.33 * snp_rate) { /* Del */
+            count++;
             continue;
-        }
-
-        p = (double)rand() / RAND_MAX;
-
-        /* SNP */
-        if (p < snp_rate) {
+        } else if (p < 0.67 * snp_rate) { /* Ins */
+            char b = rand_base();
+            read[r++] = b;
+            count++;
+            i--;
+        } else if (p < snp_rate) { /* SNP */
             char b;
             do { b = rand_base(); } while (b == ref[i]);
             read[r++] = b;
+            count++;
         } else {
             read[r++] = ref[i];
         }
     }
     read[r] = '\0';
+    *edit_distance = count;
+
     return r;
 }
 
@@ -673,20 +668,27 @@ int main(int argc, char **argv) {
                 exit(1);
             }
 
+            double total_edit_dist = 0, total_read_len = 0;
+
             for (int i = 0; i < READ_COUNT; i++) {
                 char *ref = (char *)malloc(p.max_seq_len + 1);
                 random_sequence(ref, p.max_seq_len);
 
+                int edit_distance = 0;
                 char *read = (char *)malloc(p.max_seq_len * 2);
-                simulate_errors(ref, read, p.read_len, error_rates[e], error_rates[e]);
+                total_read_len += simulate_errors(ref, read, p.read_len, error_rates[e], &edit_distance);
 
                 fprintf(maf, "@read_%d\n%s\n+\n%s\n", i, ref, read);
 
                 free(ref);
                 free(read);
+
+                total_edit_dist += edit_distance;
             }
 
             fclose(maf);
+
+            printf("Avg edit distance: %0.2f, avg read len: %0.2f\n", total_edit_dist / READ_COUNT, total_read_len / READ_COUNT);
         }
     }
 

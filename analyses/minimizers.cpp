@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <set>
+#include <unordered_map>
 #include <math.h>
 #include "../sketch/hmin.h"
 #include "utils.h"
@@ -91,7 +91,7 @@ void process(std::string &sequence,
              int window, int kmer_size, int only_symmetric,
              int (&core_counts)[LEVEL],
              int (&contiguous_counts)[LEVEL],
-             std::set<uint32_t> (&distinct_cores)[LEVEL],
+             std::unordered_map<uint32_t, size_t> (&distinct_cores)[LEVEL],
              std::vector<std::chrono::milliseconds> &durations,
              int (&distances)[LEVEL][DISTANCE_LENGTH],
              std::vector<std::vector<uint32_t>> &distancesXL,
@@ -119,7 +119,7 @@ void process(std::string &sequence,
 	analyze(minimizers, minimizers_len, 0, contiguous_counts, distances, distancesXL, distance_gaps, lengths, lengthsXL, length_gaps, overlap_lengths, overlap_lengthsXL, overlap_length_gaps);
 
     for (uint64_t index = 0; index < minimizers_len; index++) {
-        distinct_cores[0].insert(GET_128_KMER(minimizers[index]));
+		distinct_cores[0][GET_128_KMER(minimizers[index])]++;
     }
 
 	for (int i = 1; i < LEVEL; i++) {
@@ -138,7 +138,7 @@ void process(std::string &sequence,
         analyze(hi_minimizers, hi_minimizers_len, i, contiguous_counts, distances, distancesXL, distance_gaps, lengths, lengthsXL, length_gaps, overlap_lengths, overlap_lengthsXL, overlap_length_gaps);
 
         for (uint64_t index = 0; index < hi_minimizers_len; index++) {
-            distinct_cores[i].insert(GET_128_KMER(hi_minimizers[index]));
+			distinct_cores[i][GET_128_KMER(minimizers[index])]++;
         }
 
         if (minimizers_len) free(minimizers);
@@ -177,7 +177,7 @@ int main(int argc, char **argv) {
     // section 1
     int core_counts[LEVEL] = {0};
 	int contiguous_counts[LEVEL] = {0};
-    std::set<uint32_t> distinct_cores[LEVEL];
+    std::unordered_map<uint32_t, size_t> distinct_cores[LEVEL];
     std::vector<std::chrono::milliseconds> durations(LEVEL);
 	durations.resize(LEVEL);
 	// section 2
@@ -272,16 +272,32 @@ int main(int argc, char **argv) {
 	std::cout << " \\\\" << std::endl;
 
 	// Distinct Cores
-    std::cout << "Unique Cores";
+    std::cout << "Distinct Cores";
     for (int i = 0; i < LEVEL; i++) {
         std::cout << sep << format_int(distinct_cores[i].size());
     }
     std::cout << " \\\\" << std::endl;
 
-	// Distinctness Ratio
-    std::cout << "Distinctness (%)";
+	// Unique Cores
+	size_t unique_counts[LEVEL];
+	std::cout << "Unique Cores";
     for (int i = 0; i < LEVEL; i++) {
-        std::cout << sep << format_double(((double)distinct_cores[i].size()) / ((double)contiguous_counts[i]));
+		size_t count_once = 0;
+
+		for (const auto& [value, count] : distinct_cores[i]) {
+			if (count == 1) {
+				++count_once;
+			}
+		}
+		unique_counts[i] = count_once;
+        std::cout << sep << format_int(unique_counts[i]);
+    }
+    std::cout << " \\\\" << std::endl;
+
+	// Uniqueness Ratio
+    std::cout << "Uniqueness (%)";
+    for (int i = 0; i < LEVEL; i++) {
+        std::cout << sep << format_double(((double)unique_counts[i]) / ((double)core_counts[i]));
     }
     std::cout << " \\\\" << std::endl;
 
