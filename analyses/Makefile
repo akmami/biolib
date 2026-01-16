@@ -7,8 +7,12 @@ WINDOW_SIZES := $(shell seq 4 10)
 SKIP_KMER 	:= 3
 SKIP_WINDOW := 2
 
-BLEND_K_HIFI := 21
-BLEND_W_HIFI := 11
+BLEND_K_HIFI := 19
+BLEND_W_HIFI := 50
+BLEND_K_SHORT := 21
+BLEND_W_SHORT := 11
+BLEND_K_BEST := 15
+BLEND_W_BEST := 10
 
 # Programs
 # fa
@@ -27,7 +31,7 @@ CXX := .cpp
 
 # Compiler
 GXX := g++
-CXXFLAGS = -std=c++11 -O3 -Wall -Wextra -Wpedantic
+CXXFLAGS = -std=c++17 -O3 -Wall -Wextra -Wpedantic
 TIME := /usr/bin/time -v
 
 .PHONY: all %
@@ -73,7 +77,7 @@ clean:
 ######################################################################
 # HIERARCHICAL MINIMIZER
 ######################################################################
-faHmin: mkdir_bin mkdir_out
+faHmin: check_fasta mkdir_bin mkdir_out
 	$(GXX) $(CXXFLAGS) -c $(FAHMIN)$(CXX)
 	$(GXX) $(CXXFLAGS) -o $(FAHMIN) $(FAHMIN).o
 	@rm $(FAHMIN).o
@@ -84,24 +88,26 @@ faHmin: mkdir_bin mkdir_out
 			for w in $(WINDOW_SIZES); do \
 				if [ $$(( $$w % $(SKIP_WINDOW) )) -ne 0 ]; then continue; fi; \
 				echo "$(FASTA) k=$$k w=$$w -> ../out/fa-hmin/$(FAHMIN)-$$k-$$w-output.txt"; \
-				date > $(OUT_DIR)/fa-hmin/$(FAHMIN)-$$k-$$w-output.txt; \
-				$(TIME) $(EXECUTABLE_DIR)/$(FAHMIN) $(FASTA) $$k $$w >> $(OUT_DIR)/fa-hmin/$(FAHMIN)-$$k-$$w-output.txt 2>&1; \
+				date > ../out/fa-hmin/$(FAHMIN)-$$k-$$w-output.txt; \
+				$(TIME) ../bin/$(FAHMIN) $(FASTA) $$k $$w >> ../out/fa-hmin/$(FAHMIN)-$$k-$$w-output.txt 2>&1; \
 		done; \
 	done
-	
+
 ######################################################################
 # FUZZY SEEDS (BLEND)
 ######################################################################
-faBlend: mkdir_bin mkdir_out
+faBlend: check_fasta mkdir_bin mkdir_out
 	$(GXX) $(CXXFLAGS) -mavx2 -msse4.1 -c $(BLEND)$(CXX)
 	$(GXX) $(CXXFLAGS) -o $(BLEND) $(BLEND).o
 	@rm $(BLEND).o
 	@mv $(BLEND) $(EXECUTABLE_DIR)
 	@mkdir -p ../out/fa-blend
-	echo "$(FASTA) -> ../out/fa-blend/$(BLEND)-k$(BLEND_K_HIFI)-w$(BLEND_W_HIFI)-output.txt"
-	date > $(OUT_DIR)/fa-blend/$(BLEND)-k$(BLEND_K_HIFI)-w$(BLEND_W_HIFI)-output.txt
-	$(TIME) $(EXECUTABLE_DIR)/$(BLEND) $(FASTA) $(BLEND_K_HIFI) $(BLEND_W_HIFI) >> $(OUT_DIR)/fa-blend/$(BLEND)-k$(BLEND_K_HIFI)-w$(BLEND_W_HIFI)-output.txt 2>&1
-	
+	@echo "$(FASTA) -> ../out/fa-blend/$(BLEND)-output.txt"
+	@date > ../out/fa-blend/$(BLEND)-output.txt
+	$(TIME) ../bin/$(BLEND) $(FASTA) $(BLEND_K_SHORT) $(BLEND_W_SHORT) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1
+	$(TIME) ../bin/$(BLEND) $(FASTA) $(BLEND_K_HIFI) $(BLEND_W_HIFI) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1
+	$(TIME) ../bin/$(BLEND) $(FASTA) $(BLEND_K_BEST) $(BLEND_W_BEST) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1
+
 ######################################################################
 # ERROR TOLERANCE EXPERIMENT
 ######################################################################
@@ -110,11 +116,13 @@ errSim: mkdir_bin mkdir_out
 	$(GXX) $(CXXFLAGS) -o $(SIMULATE) $(SIMULATE).o
 	@rm $(SIMULATE).o
 	@mv $(SIMULATE) $(EXECUTABLE_DIR)
-	@rm -rf ../data/sim/*
 	@mkdir -p ../out/err-sim
-	echo "Output -> ../out/err-sim/$(SIMULATE)-output.txt"
-	date > $(OUT_DIR)/err-sim/$(SIMULATE)-output.txt
-	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -g -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-output.txt 2>&1
-	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -a --blend --short -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-output.txt 2>&1
-	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -a --blend --hifi -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-output.txt 2>&1
-	$(TIME) $(EXECUTABLE_DIR)/$(SIMULATE) -a --h-min -d ../data/sim >> $(OUT_DIR)/err-sim/$(SIMULATE)-output.txt 2>&1
+	@mkdir -p ../data/sim
+	@rm -rf ../data/sim/*
+	@echo "Output -> ../out/err-sim/$(SIMULATE)-output.txt"
+	@date > $(OUT_DIR)/err-sim/$(SIMULATE)-output.txt
+	$(TIME) ../bin/$(SIMULATE) -g -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1
+	$(TIME) ../bin/$(SIMULATE) -a --blend --short -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1
+	$(TIME) ../bin/$(SIMULATE) -a --blend --hifi -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1
+	$(TIME) ../bin/$(SIMULATE) -a --blend -k $(BLEND_K_BEST) -w $(BLEND_W_BEST) -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1
+	$(TIME) ../bin/$(SIMULATE) -a --h-min -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1

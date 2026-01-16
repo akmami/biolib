@@ -16,6 +16,8 @@ extern "C" {
 #define BLEND_GET_KMER(minimizer) ((minimizer).x >> 14)
 #define BLEND_GET_LENGTH(minimizer) ((minimizer).x & 0x3FFF)
 #define BLEND_GET_INDEX(minimizer) (((minimizer).y & 0xFFFFFFFF) >> 1)
+#define BLEND_GET_REFERENCE_IDX(minimizer) (((minimizer).y >> 32))
+#define BLEND_GET_STRAND(minimizer) (((minimizer).y & 1))
 
 // Source: https://stackoverflow.com/a/21673221
 static inline __m256i movemask_inverse(const uint32_t hash_value) {

@@ -123,8 +123,9 @@ void process(std::string &sequence,
 	std::cout << "Length of the processed sequence: " << format_int(sequence.size()) << std::endl;
 
 	sequence.clear();
-}
 
+	if (minimizers_len) free(minimizers);
+}
 
 int main(int argc, char **argv) {
 
@@ -176,10 +177,13 @@ int main(int argc, char **argv) {
     
     // other
 	size_t genome_size = 0;
+	size_t count_once = 0;
+	size_t relaxed_unique = 0;
 
 	// read file
 	if (genome.is_open()) {
 
+		// process genome
 		std::string sequence, id;
 		sequence.reserve(250000000);
 
@@ -209,16 +213,65 @@ int main(int argc, char **argv) {
 			process(sequence, window, kmer_size, core_counts, contiguous_counts, distinct_cores, durations, distances, distancesXL, distance_gaps, lengths, lengthsXL, length_gaps, overlap_lengths, overlap_lengthsXL, overlap_length_gaps, sizes);
 		}
 
-		genome.close();
-	}
-
-	size_t count_once = 0;
-
-	for (const auto& [value, count] : distinct_cores) {
-		if (count == 1) {
-			++count_once;
+		for (const auto& [value, count] : distinct_cores) {
+			if (count == 1) {
+				++count_once;
+			}
 		}
-	}
+
+		// test for uniqueness
+		genome.clear();
+		genome.seekg(0, std::ios::beg);
+
+		while (getline(genome, line)) {
+
+			if (line[0] == '>') {
+
+				if (sequence.size() != 0) {
+					uint128_t *minimizers;
+					uint64_t minimizers_len = 0;
+					
+					minimizers_len = blend_sketch(sequence.c_str(), sequence.length(), window, kmer_size, BLEND_BITS_HIFI, BLEND_NEIGHBOR_NUMBER_HIFI, 0, &minimizers);
+
+					if (minimizers_len && distinct_cores[BLEND_GET_KMER(minimizers[0])] == 1) {
+						relaxed_unique++;
+					}
+
+					for (uint64_t i = 1; i < minimizers_len; i++) {
+						if (distinct_cores[BLEND_GET_KMER(minimizers[i])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[i-1])] == 1) {
+							relaxed_unique++;
+						}
+					}
+					if (minimizers_len) free(minimizers);
+				}
+
+				continue;
+
+			} else if (line[0] != '>') {
+				sequence += line;
+			}
+		}
+
+		if (sequence.size() != 0) {
+			uint128_t *minimizers;
+			uint64_t minimizers_len = 0;
+			
+			minimizers_len = blend_sketch(sequence.c_str(), sequence.length(), window, kmer_size, BLEND_BITS_HIFI, BLEND_NEIGHBOR_NUMBER_HIFI, 0, &minimizers);
+
+			if (minimizers_len && distinct_cores[BLEND_GET_KMER(minimizers[0])] == 1) {
+				relaxed_unique++;
+			}
+
+			for (uint64_t i = 1; i < minimizers_len; i++) {
+				if (distinct_cores[BLEND_GET_KMER(minimizers[i])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[i-1])] == 1) {
+					relaxed_unique++;
+				}
+			}
+			if (minimizers_len) free(minimizers);
+		}
+
+		genome.close();
+	}	
 
 	// Total Cores
 	std::cout << "Total \\# Cores: " << format_int(core_counts) << std::endl;
@@ -234,6 +287,9 @@ int main(int argc, char **argv) {
 
 	// Uniqueness Ratio
     std::cout << "Uniqueness %: " << format_double(((double)count_once) / ((double)core_counts)) << std::endl;
+
+	// Relaxed Uniqueness Ratio
+    std::cout << "Relaxed-Uniqueness %: " << format_double(((double)relaxed_unique) / ((double)core_counts)) << std::endl;
 
 	// Execution Time
 	std::cout << "Exec. Time (sec): " << format_double(((double)durations.count()) / 1000) << std::endl;

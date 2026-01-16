@@ -133,7 +133,7 @@ for k in ks:
 plt.figure(figsize=(8, 6))
 for level, total, unique, k, w, label in core_data:
     plt.plot(level, total, color=w_colors[w], marker=k_markers[k], linestyle="--", label=f"Total ({label})")
-    plt.plot(level, unique, color=w_colors[w], marker=k_markers[k], linestyle="--", label=f"Unique ({label})")
+    # plt.plot(level, unique, color=w_colors[w], marker=k_markers[k], linestyle="--", label=f"Unique ({label})")
 
 plt.xlabel("Hierarchy level")
 plt.ylabel("Core count")
@@ -146,8 +146,7 @@ plt.gca().yaxis.set_major_locator(LogLocator(base=10))
 plt.gca().yaxis.set_major_formatter(FuncFormatter(lambda x, pos: f"{int(x):,}"))
 
 k_legend = [
-    Line2D([0], [0], marker=marker, color="black", linestyle="None",
-           markersize=8, label=f": {k}")
+    Line2D([0], [0], marker=marker, color="black", linestyle="None", markersize=8, label=f": {k}")
     for k, marker in k_markers.items()
 ]
 
