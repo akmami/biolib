@@ -237,10 +237,13 @@ int main(int argc, char **argv) {
 						relaxed_unique++;
 					}
 
-					for (uint64_t i = 1; i < minimizers_len; i++) {
-						if (distinct_cores[BLEND_GET_KMER(minimizers[i])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[i-1])] == 1) {
+					for (uint64_t i = 1; i < minimizers_len-1; i++) {
+						if (distinct_cores[BLEND_GET_KMER(minimizers[i])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[i-1])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[i+1])] == 1) {
 							relaxed_unique++;
 						}
+					}
+					if (distinct_cores[BLEND_GET_KMER(minimizers[0])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[minimizers_len+1])] == 1) {
+						relaxed_unique++;
 					}
 					if (minimizers_len) free(minimizers);
 				}
