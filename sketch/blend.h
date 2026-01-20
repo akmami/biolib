@@ -18,10 +18,13 @@ extern "C" {
 #define BLEND_GET_REFERENCE_IDX(minimizer) (((minimizer).y >> 32))
 #define BLEND_GET_STRAND(minimizer) (((minimizer).y & 1))
 
+#ifndef __UINT128_T__
+#define __UINT128_T__
 typedef struct {
 	uint64_t x; // kmer(32) + reference(32)
 	uint64_t y; // length(31) + strand(1) + index(32)
 } uint128_t;
+#endif
 
 /**
  * Find (w,k)-minimizers on a DNA sequence and BLEND n_neighbors many consecutive minimizers
@@ -38,5 +41,9 @@ typedef struct {
 uint64_t blend_sb_sketch(const char *str, int len, int window, int kmer_size, int blend_bits, uint64_t n_neighbors, uint32_t rid, uint128_t **fuzzy_seeds);
 
 uint64_t blend_sketch(const char *str, int len, int window, int kmer_size, int blend_bits, int n_neighbors, uint32_t rid, uint128_t **fuzzy_seeds);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

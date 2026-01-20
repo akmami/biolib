@@ -58,27 +58,103 @@ int main(int argc, char **argv) {
 
                 uint32_t seed_index = kh_val(index_table, k);
 
-                if (seed_index < unique_fuzzy_seeds_len) {
-                    // uint64_t ref_kmer = BLEND_GET_KMER(fuzzy_seeds[seed_index]);
-                    uint64_t ref_span = BLEND_GET_LENGTH(fuzzy_seeds[seed_index]);
-                    uint64_t ref_index = BLEND_GET_INDEX(fuzzy_seeds[seed_index]);
-                    uint64_t rid = BLEND_GET_REFERENCE_IDX(fuzzy_seeds[seed_index]);
-                    int ref_strand = BLEND_GET_STRAND(fuzzy_seeds[seed_index]);
-                    
-                    uint64_t read_span = BLEND_GET_LENGTH(temp_fuzzy_seeds[i]);
-                    uint64_t read_index = BLEND_GET_INDEX(temp_fuzzy_seeds[i]);
-                    int read_strand = BLEND_GET_STRAND(temp_fuzzy_seeds[i]);
+                if (seed_index < unique_fuzzy_seeds_len) { // check if unique
+                    // // uint64_t ref_kmer = BLEND_GET_KMER(fuzzy_seeds[seed_index]);
+                    // uint64_t ref_span = BLEND_GET_LENGTH(fuzzy_seeds[seed_index]);
+                    // uint64_t ref_index = BLEND_GET_INDEX(fuzzy_seeds[seed_index]);
+                    // uint64_t ref_id = BLEND_GET_REFERENCE_IDX(fuzzy_seeds[seed_index]);
+                    // int ref_strand = BLEND_GET_STRAND(fuzzy_seeds[seed_index]);
 
-                    // get substrings
-                    const char *ref = seqs[rid].chrom + ref_index;
-                    const char *read = bases + read_index;
+                    // uint64_t read_span = BLEND_GET_LENGTH(temp_fuzzy_seeds[i]);
+                    // uint64_t read_index = BLEND_GET_INDEX(temp_fuzzy_seeds[i]);
+                    // int read_strand = BLEND_GET_STRAND(temp_fuzzy_seeds[i]);
 
-                    // align and report variants in alignment
-                    int alignment_mismatches = banded_align_and_report(ref, ref_span, read, read_span, ref_index, rid, read_id, ref_strand, read_strand);
-#ifdef __DEBUG
-                    if (alignment_mismatches && ref_span != read_span) printf("ref_span: %lu, read_span: %lu\n", ref_span, read_span);
-#endif
-                    mismatches += alignment_mismatches;
+                    // // get substrings
+                    // const char *ref = seqs[ref_id].chrom + ref_index;
+                    // const char *read = bases + read_index;
+
+                    // // align and report variants in alignment
+                    // int alignment_mismatches = banded_align_and_report(ref, ref_span, read, read_span, ref_index, ref_id, read_id, ref_strand, read_strand);
+                    // // if (alignment_mismatches && ref_span != read_span) printf("ref_span: %lu, read_span: %lu\n", ref_span, read_span);
+                    // mismatches += alignment_mismatches;
+
+                    continue;
+                }
+
+                if (i) { // check left
+                    k = map32_get(index_table, BLEND_GET_KMER(temp_fuzzy_seeds[i-1]));
+
+                    if (k < kh_end(index_table)) {
+
+                        uint32_t left_seed_index = kh_val(index_table, k);
+
+                        if (left_seed_index < unique_fuzzy_seeds_len) {
+
+                            for (uint64_t temp_seed_index = seed_index; seed_index < relaxed_fuzzy_seeds_len; temp_seed_index++) {
+                                if (BLEND_GET_KMER(fuzzy_seeds[temp_seed_index]) != BLEND_GET_KMER(temp_fuzzy_seeds[i])) {
+                                    break;
+                                }
+                                if (BLEND_GET_REFERENCE_IDX(fuzzy_seeds[temp_seed_index]) == BLEND_GET_REFERENCE_IDX(fuzzy_seeds[left_seed_index]) &&
+                                    abs_diff(BLEND_GET_INDEX(fuzzy_seeds[temp_seed_index]), BLEND_GET_INDEX(fuzzy_seeds[left_seed_index])) < DISTANCE_THRESHOLD) {
+                                    // found
+                                    uint64_t ref_span = BLEND_GET_LENGTH(fuzzy_seeds[temp_seed_index]);
+                                    uint64_t ref_index = BLEND_GET_INDEX(fuzzy_seeds[temp_seed_index]);
+                                    uint64_t ref_id = BLEND_GET_REFERENCE_IDX(fuzzy_seeds[temp_seed_index]);
+                                    int ref_strand = BLEND_GET_STRAND(fuzzy_seeds[temp_seed_index]);
+
+                                    uint64_t read_span = BLEND_GET_LENGTH(temp_fuzzy_seeds[i]);
+                                    uint64_t read_index = BLEND_GET_INDEX(temp_fuzzy_seeds[i]);
+                                    int read_strand = BLEND_GET_STRAND(temp_fuzzy_seeds[i]);
+
+                                    // get substrings
+                                    const char *ref = seqs[ref_id].chrom + ref_index;
+                                    const char *read = bases + read_index;
+
+                                    // align and report variants in alignment
+                                    int alignment_mismatches = banded_align_and_report(ref, ref_span, read, read_span, ref_index, ref_id, read_id, ref_strand, read_strand);
+                                    // if (alignment_mismatches && ref_span != read_span) printf("ref_span: %lu, read_span: %lu\n", ref_span, read_span);
+                                    mismatches += alignment_mismatches;
+                                }
+                            }
+                        }
+                    }
+                } else if (i < temp_fuzzy_seeds_len -1) { // check right
+                    k = map32_get(index_table, BLEND_GET_KMER(temp_fuzzy_seeds[i+1]));
+
+                    if (k < kh_end(index_table)) {
+
+                        uint32_t right_seed_index = kh_val(index_table, k);
+                        
+                        if (right_seed_index < unique_fuzzy_seeds_len) {
+
+                            for (uint64_t temp_seed_index = seed_index; seed_index < relaxed_fuzzy_seeds_len; temp_seed_index++) {
+                                if (BLEND_GET_REFERENCE_IDX(fuzzy_seeds[temp_seed_index]) != BLEND_GET_KMER(temp_fuzzy_seeds[i])) {
+                                    break;
+                                }
+                                if (BLEND_GET_REFERENCE_IDX(fuzzy_seeds[temp_seed_index]) == BLEND_GET_REFERENCE_IDX(fuzzy_seeds[right_seed_index]) &&
+                                    abs_diff(BLEND_GET_INDEX(fuzzy_seeds[temp_seed_index]), BLEND_GET_INDEX(fuzzy_seeds[right_seed_index])) < DISTANCE_THRESHOLD) {
+                                    // found
+                                    uint64_t ref_span = BLEND_GET_LENGTH(fuzzy_seeds[temp_seed_index]);
+                                    uint64_t ref_index = BLEND_GET_INDEX(fuzzy_seeds[temp_seed_index]);
+                                    uint64_t ref_id = BLEND_GET_REFERENCE_IDX(fuzzy_seeds[temp_seed_index]);
+                                    int ref_strand = BLEND_GET_STRAND(fuzzy_seeds[temp_seed_index]);
+
+                                    uint64_t read_span = BLEND_GET_LENGTH(temp_fuzzy_seeds[i]);
+                                    uint64_t read_index = BLEND_GET_INDEX(temp_fuzzy_seeds[i]);
+                                    int read_strand = BLEND_GET_STRAND(temp_fuzzy_seeds[i]);
+
+                                    // get substrings
+                                    const char *ref = seqs[ref_id].chrom + ref_index;
+                                    const char *read = bases + read_index;
+
+                                    // align and report variants in alignment
+                                    int alignment_mismatches = banded_align_and_report(ref, ref_span, read, read_span, ref_index, ref_id, read_id, ref_strand, read_strand);
+                                    // if (alignment_mismatches && ref_span != read_span) printf("ref_span: %lu, read_span: %lu\n", ref_span, read_span);
+                                    mismatches += alignment_mismatches;
+                                }
+                            }
+                        }
+                    }
                 }
             } else {
                 not_found++;
@@ -101,12 +177,9 @@ int main(int argc, char **argv) {
 
     // cleanup
     map32_destroy(index_table);
+    free_seqs(&seqs, seq_count);
 
-    for (int i = 0; i < seq_count; i++) {
-        free(seqs[i].header);
-        free(seqs[i].chrom);
-    }
-    if (seq_count) free(seqs);
+    if (relaxed_fuzzy_seeds_len) free(fuzzy_seeds);
 
     return 0;
 }

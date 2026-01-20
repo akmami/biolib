@@ -549,7 +549,7 @@ int main(int argc, char **argv) {
 
         for (int e = 0; e < n_rates; e++) {
 
-            printf("\nError rate %.1f%c\n", error_rates[e] * 100, '%');
+            printf("Error rate %.1f%c\n", error_rates[e] * 100, '%');
 
             char maf_name[256];
             snprintf(maf_name, sizeof(maf_name), "%s/sim.%d.maf", p.dir, (int)(error_rates[e] * 1000));
@@ -640,7 +640,7 @@ int main(int argc, char **argv) {
             f1 = f1 / read_count;
             read_len = read_len / read_count;
 
-            printf("Read Cnt=%d Read Len=%.2f TP=%.2f FP=%.2f FN=%.2f | Precision=%.3f Recall=%.3f F1=%.3f\n", read_count, read_len, TP, FP, FN, precision, recall, f1);
+            printf("Read Cnt=%d Read Len=%.2f TP=%.2f FP=%.2f FN=%.2f | Precision=%.3f Recall=%.3f F1=%.3f\n\n", read_count, read_len, TP, FP, FN, precision, recall, f1);
 
             fclose(maf);
 
@@ -688,7 +688,7 @@ int main(int argc, char **argv) {
 
             fclose(maf);
 
-            printf("Avg edit distance: %0.2f, avg read len: %0.2f\n", total_edit_dist / READ_COUNT, total_read_len / READ_COUNT);
+            printf("Avg edit distance: %0.2f, avg read len: %0.2f\n\n", total_edit_dist / READ_COUNT, total_read_len / READ_COUNT);
         }
     }
 

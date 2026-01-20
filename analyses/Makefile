@@ -32,6 +32,7 @@ CXX := .cpp
 # Compiler
 GXX := g++
 CXXFLAGS = -std=c++17 -O3 -Wall -Wextra -Wpedantic
+BLENDLIB = -L ../lib -lblend 
 TIME := /usr/bin/time -v
 
 .PHONY: all %
@@ -98,22 +99,26 @@ faHmin: check_fasta mkdir_bin mkdir_out
 ######################################################################
 faBlend: check_fasta mkdir_bin mkdir_out
 	$(GXX) $(CXXFLAGS) -mavx2 -msse4.1 -c $(BLEND)$(CXX)
-	$(GXX) $(CXXFLAGS) -o $(BLEND) $(BLEND).o
+	$(GXX) $(CXXFLAGS) -o $(BLEND) $(BLEND).o $(BLENDLIB)
 	@rm $(BLEND).o
 	@mv $(BLEND) $(EXECUTABLE_DIR)
 	@mkdir -p ../out/fa-blend
 	@echo "$(FASTA) -> ../out/fa-blend/$(BLEND)-output.txt"
 	@date > ../out/fa-blend/$(BLEND)-output.txt
+	@echo "" >> ../out/fa-blend/$(BLEND)-output.txt
 	$(TIME) ../bin/$(BLEND) $(FASTA) $(BLEND_K_SHORT) $(BLEND_W_SHORT) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1
+	@echo "" >> ../out/fa-blend/$(BLEND)-output.txt
 	$(TIME) ../bin/$(BLEND) $(FASTA) $(BLEND_K_HIFI) $(BLEND_W_HIFI) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1
+	@echo "" >> ../out/fa-blend/$(BLEND)-output.txt
 	$(TIME) ../bin/$(BLEND) $(FASTA) $(BLEND_K_BEST) $(BLEND_W_BEST) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1
+	@echo "" >> ../out/fa-blend/$(BLEND)-output.txt
 
 ######################################################################
 # ERROR TOLERANCE EXPERIMENT
 ######################################################################
 errSim: mkdir_bin mkdir_out
 	$(GXX) $(CXXFLAGS) -mavx2 -msse4.1 -c $(SIMULATE)$(CXX)
-	$(GXX) $(CXXFLAGS) -o $(SIMULATE) $(SIMULATE).o
+	$(GXX) $(CXXFLAGS) -o $(SIMULATE) $(SIMULATE).o $(BLENDLIB)
 	@rm $(SIMULATE).o
 	@mv $(SIMULATE) $(EXECUTABLE_DIR)
 	@mkdir -p ../out/err-sim
@@ -121,8 +126,14 @@ errSim: mkdir_bin mkdir_out
 	@rm -rf ../data/sim/*
 	@echo "Output -> ../out/err-sim/$(SIMULATE)-output.txt"
 	@date > $(OUT_DIR)/err-sim/$(SIMULATE)-output.txt
+	@echo "" >> ../out/err-sim/$(SIMULATE)-output.txt
 	$(TIME) ../bin/$(SIMULATE) -g -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1
+	@echo "" >> ../out/err-sim/$(SIMULATE)-output.txt
 	$(TIME) ../bin/$(SIMULATE) -a --blend --short -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1
+	@echo "" >> ../out/err-sim/$(SIMULATE)-output.txt
 	$(TIME) ../bin/$(SIMULATE) -a --blend --hifi -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1
+	@echo "" >> ../out/err-sim/$(SIMULATE)-output.txt
 	$(TIME) ../bin/$(SIMULATE) -a --blend -k $(BLEND_K_BEST) -w $(BLEND_W_BEST) -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1
+	@echo "" >> ../out/err-sim/$(SIMULATE)-output.txt
 	$(TIME) ../bin/$(SIMULATE) -a --h-min -d ../data/sim >> ../out/err-sim/$(SIMULATE)-output.txt 2>&1
+	@echo "" >> ../out/err-sim/$(SIMULATE)-output.txt

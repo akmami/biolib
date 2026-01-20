@@ -276,6 +276,11 @@ int main(int argc, char **argv) {
 		genome.close();
 	}	
 
+	std::cout << std::endl;
+
+	// Param Settings
+	std::cout << "k: " << kmer_size << ", w: " << window << ", n: " << BLEND_NEIGHBOR_NUMBER_HIFI << std::endl;
+
 	// Total Cores
 	std::cout << "Total \\# Cores: " << format_int(core_counts) << std::endl;
 

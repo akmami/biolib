@@ -13,6 +13,10 @@ static inline char rc_base(char b) {
         case 'C': return 'G';
         case 'G': return 'C';
         case 'T': return 'A';
+        case 'a': return 'T';
+        case 'c': return 'G';
+        case 'g': return 'C';
+        case 't': return 'A';
         default:  return 'N';
     }
 }
@@ -22,6 +26,19 @@ void reverse_complement(const char *in, char *out, int len) {
         out[len - i - 1] = rc_base(in[i]);
 }
 
+void free_seqs(ref_seq **seqs, int seq_len) {
+    if (seq_len) {
+        ref_seq *temp = *seqs;
+        for (int i = 0; i < seq_len; i++) {
+            if (temp[i].len) {
+                free(temp[i].chrom);
+            }
+            if (temp[i].header) free(temp[i].header);
+        }
+
+        free(temp);
+    }
+}
 int store_seqs(const char *path, ref_seq **seqs) {
 
     char *fai_path = (char *)malloc(strlen(path) + 5);
@@ -144,6 +161,12 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
     kseq_destroy(seq);
     gzclose(fp);
 
+    // if no seeds are found, then no need to proceed
+    if (!all_fuzzy_seeds_len) {
+        free(all_fuzzy_seeds);
+        return 0;
+    }
+
     uint128_t *temp_all_fuzzy_seeds = (uint128_t *)malloc(sizeof(uint128_t) * all_fuzzy_seeds_len);
     if (!temp_all_fuzzy_seeds) {
         fprintf(stderr, "Error: couldn't allocate array\n");
@@ -204,6 +227,9 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
         }
     }
 
+    // no need for temp_all_fuzzy_seeds any more
+    free(temp_all_fuzzy_seeds);
+
     if (relaxed_fuzzy_seeds_len != unique_fuzzy_seeds_len) {
         qsort(all_fuzzy_seeds + unique_fuzzy_seeds_len, relaxed_fuzzy_seeds_len - unique_fuzzy_seeds_len, sizeof(uint128_t), cmp_fuzzy_seeds);
     }
@@ -233,6 +259,8 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
     
     int ref_len = ref_span;
     int read_len = read_span;
+
+    if (ref_span != read_span) return 0;
 
     if (abs(ref_len - read_len) > BAND) return 0; // why bother?
 
@@ -318,7 +346,9 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
 #endif
             if (ref_buf[i-1] != read_buf[j-1]) {
                 mismatches++;
-                // printf("SNP\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, ref_buf[i-1], read_buf[j-1]);
+                if (i-1 != 0 && j-1 != 0 && i != ref_len && j != read_len) {
+                    printf("SNP\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, ref_buf[i-1], read_buf[j-1]);
+                }
             }
             i--; j--;
         }
@@ -328,7 +358,9 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
             aln_read[aln_len] = '-';
             aln_mid[aln_len]  = ' ';
 #endif
-            // printf("DEL\tREFID=%lu\tREADID=%lu\tPOS=%lu\tBASE=%c\n", ref_id, read_id, ref_pos + i - 1, ref_buf[i-1]);
+            if (i-1 != 0 && j-1 != 0 && i != ref_len && j != read_len) {
+                printf("DEL\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, ref_buf[i-1], '-');
+            }
             i--; k++;
         }
         else {
@@ -337,7 +369,9 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
             aln_read[aln_len] = read_buf[j-1];
             aln_mid[aln_len]  = ' ';
 #endif
-            // printf("INS\tREFID=%lu\tREADID=%lu\tPOS=%lu\tBASE=%c\n", ref_id, read_id, ref_pos + i, read_buf[j-1]);
+            if (i-1 != 0 && j-1 != 0 && i != ref_len && j != read_len) {
+                printf("INS\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, '-', read_buf[j-1]);
+            }
             j--; k--;
         }
 
@@ -347,44 +381,40 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
 #endif
     }
 #ifdef __DEBUG
+    if (mismatches) {
+        // reverse alignment strings
+        for (int x = 0; x < aln_len / 2; x++) {
+            char t;
 
-    // reverse alignment strings
-    for (int x = 0; x < aln_len / 2; x++) {
-        char t;
+            t = aln_ref[x];
+            aln_ref[x] = aln_ref[aln_len - 1 - x];
+            aln_ref[aln_len - 1 - x] = t;
 
-        t = aln_ref[x];
-        aln_ref[x] = aln_ref[aln_len - 1 - x];
-        aln_ref[aln_len - 1 - x] = t;
+            t = aln_read[x];
+            aln_read[x] = aln_read[aln_len - 1 - x];
+            aln_read[aln_len - 1 - x] = t;
 
-        t = aln_read[x];
-        aln_read[x] = aln_read[aln_len - 1 - x];
-        aln_read[aln_len - 1 - x] = t;
+            t = aln_mid[x];
+            aln_mid[x] = aln_mid[aln_len - 1 - x];
+            aln_mid[aln_len - 1 - x] = t;
+        }
 
-        t = aln_mid[x];
-        aln_mid[x] = aln_mid[aln_len - 1 - x];
-        aln_mid[aln_len - 1 - x] = t;
+        aln_ref[aln_len]  = '\0';
+        aln_read[aln_len] = '\0';
+        aln_mid[aln_len]  = '\0';
+
+        // print alignment
+        printf("\n");
+        printf("REF : %s (%lu)\n", aln_ref, ref_span);
+        printf("      %s\n", aln_mid);
+        printf("READ: %s (%lu)\n", aln_read, read_span);
+
+        printf("--------------------------------------------------------------------------\n");
+
+        // print seqs
+        printf("REF:  %.*s\n", (int)ref_span, ref);
+        printf("READ: %.*s\n\n", (int)read_span, read);
     }
-
-    aln_ref[aln_len]  = '\0';
-    aln_read[aln_len] = '\0';
-    aln_mid[aln_len]  = '\0';
-
-    // print alignment
-    printf("\n");
-    printf("REF : %s (%d)\n", aln_ref, ref_len);
-    printf("      %s\n", aln_mid);
-    printf("READ: %s (%d)\n", aln_read, read_len);
-
-    printf("--------------------------------------------------------------------------\n");
-
-    // print seqs
-    printf("REF:  ");
-    fwrite(ref, 1, ref_len, stdout);
-    printf("\n");
-
-    printf("READ: ");
-    fwrite(read, 1, read_len, stdout);
-    printf("\n");
 #endif
     return mismatches;
 }

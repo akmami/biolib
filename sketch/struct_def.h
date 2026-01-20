@@ -28,16 +28,22 @@ unsigned char seq_nt4_table[256] = {
 	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4
 };
 
+#ifndef __UINT128_T__
+#define __UINT128_T__
 typedef struct {
 	uint64_t x; // kmer(32) + reference(32)
 	uint64_t y; // length(31) + strand(1) + index(32)
 } uint128_t;
+#endif
 
+#ifndef __UINT160_T__
+#define __UINT160_T__
 typedef struct {
 	uint64_t x;
 	uint64_t y;
 	uint32_t z;
 } uint160_t;
+#endif
 
 #define MASK_HEAD_64    0xFFFFFFFF00000000ULL
 #define MASK_TAIL_64    0x00000000FFFFFFFFULL

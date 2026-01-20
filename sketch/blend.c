@@ -1,5 +1,10 @@
 #include "blend.h"
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 static unsigned char seq_nt4_table[256] = {
 	0, 1, 2, 3,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
 	4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,  4, 4, 4, 4,
@@ -572,3 +577,7 @@ uint64_t blend_sb_sketch(const char *str, int len, int window, int kmer_size, in
 uint64_t blend_sketch(const char *str, int len, int window, int kmer_size, int blend_bits, int n_neighbors, uint32_t rid, uint128_t **fuzzy_seeds) {
 	return blend_sb_sketch(str, len, window, kmer_size, blend_bits, (uint64_t)n_neighbors, rid, fuzzy_seeds);
 }
+
+#ifdef __cplusplus
+}
+#endif

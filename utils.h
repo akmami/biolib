@@ -12,6 +12,7 @@
 KHASHL_MAP_INIT(KH_LOCAL, map32_t, map32, uint64_t, uint32_t, kh_hash_uint64, kh_eq_generic)
 KSEQ_INIT(gzFile, gzread)
 
+void free_seqs(ref_seq **seqs, int seq_len);
 
 int store_seqs(const char *path, ref_seq **seqs);
 

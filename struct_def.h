@@ -13,6 +13,7 @@
 #define BLEND_BITS_HIFI 38
 #define BLEND_NEIGHBOR_NUMBER_HIFI 5
 #define SKETCH_CAPACITY 40000000
+#define DISTANCE_THRESHOLD 200
 
 #define PROGRESS 0
 
@@ -22,6 +23,8 @@
 #define BAND 20        // ±8 bp band
 #define MAX_LEN 2048   // max extension length
 #define NEG_INF -100000000
+
+#define abs_diff(x, y) (x < y ? y - x : x - y)
 
 
 typedef struct {
