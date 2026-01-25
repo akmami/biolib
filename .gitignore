@@ -6,6 +6,10 @@ bin
 lib
 
 sketch/*.tmp
+sketch/control
+
+utils/bseq.h
+utils/bthread.h
 
 faves
 *.o

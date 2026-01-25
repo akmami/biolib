@@ -14,8 +14,8 @@ extern "C" {
 
 #define BLEND_GET_KMER(minimizer) ((minimizer).x >> 14)
 #define BLEND_GET_LENGTH(minimizer) ((minimizer).x & 0x3FFF)
-#define BLEND_GET_INDEX(minimizer) (((minimizer).y & 0xFFFFFFFF) >> 1)
 #define BLEND_GET_REFERENCE_IDX(minimizer) (((minimizer).y >> 32))
+#define BLEND_GET_INDEX(minimizer) (((minimizer).y & 0xFFFFFFFF) >> 1)
 #define BLEND_GET_STRAND(minimizer) (((minimizer).y & 1))
 
 #ifndef __UINT128_T__
@@ -29,18 +29,21 @@ typedef struct {
 /**
  * Find (w,k)-minimizers on a DNA sequence and BLEND n_neighbors many consecutive minimizers
  *
- * @param str           DNA sequence
- * @param len           length of $str
- * @param window        find a BLEND value for every $w consecutive k-mers
+ * @param str           sequence to be processed
+ * @param len           length of `str`
+ * @param window        find a BLEND value for every `window` consecutive k-mers
  * @param kmer_size     k-mer size
  * @param blend_bits    use blend_bits many bits when generating the hash values of seeds
  * @param n_neighbors   How many neighbors consecutive minimizer k-mers should be combined to generate a strobemer seed
- * @param rid           reference ID; will be copied to the output $p array
- * @param fuzzy_seeds
+ * @param str_id        string ID, will be encoded to output `fuzzy_seeds` array
+ * @param fuzzy_seeds   the array of fuzzy seeds being processed and found
+ * 
+ * @return              Number of fuzzy_seeds being detected
  */
-uint64_t blend_sb_sketch(const char *str, int len, int window, int kmer_size, int blend_bits, uint64_t n_neighbors, uint32_t rid, uint128_t **fuzzy_seeds);
+uint64_t blend_sb_sketch(const char *str, int len, int window, int kmer_size, int blend_bits, uint64_t n_neighbors, uint32_t str_id, uint128_t **fuzzy_seeds);
 
-uint64_t blend_sketch(const char *str, int len, int window, int kmer_size, int blend_bits, int n_neighbors, uint32_t rid, uint128_t **fuzzy_seeds);
+
+uint64_t blend_sketch(const char *str, int len, int window, int kmer_size, int blend_bits, int n_neighbors, uint32_t str_id, uint128_t **fuzzy_seeds);
 
 #ifdef __cplusplus
 }

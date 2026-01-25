@@ -14,6 +14,9 @@ BLEND_W_SHORT := 11
 BLEND_K_BEST := 15
 BLEND_W_BEST := 10
 
+K_VALUES := 15 17 19 21 23 25 27 29 31
+W_VALUES := $(shell seq 10 50)
+
 # Programs
 # fa
 FAHMIN := minimizers
@@ -102,16 +105,20 @@ faBlend: check_fasta mkdir_bin mkdir_out
 	$(GXX) $(CXXFLAGS) -o $(BLEND) $(BLEND).o $(BLENDLIB)
 	@rm $(BLEND).o
 	@mv $(BLEND) $(EXECUTABLE_DIR)
+
 	@mkdir -p ../out/fa-blend
 	@echo "$(FASTA) -> ../out/fa-blend/$(BLEND)-output.txt"
 	@date > ../out/fa-blend/$(BLEND)-output.txt
 	@echo "" >> ../out/fa-blend/$(BLEND)-output.txt
-	$(TIME) ../bin/$(BLEND) $(FASTA) $(BLEND_K_SHORT) $(BLEND_W_SHORT) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1
-	@echo "" >> ../out/fa-blend/$(BLEND)-output.txt
-	$(TIME) ../bin/$(BLEND) $(FASTA) $(BLEND_K_HIFI) $(BLEND_W_HIFI) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1
-	@echo "" >> ../out/fa-blend/$(BLEND)-output.txt
-	$(TIME) ../bin/$(BLEND) $(FASTA) $(BLEND_K_BEST) $(BLEND_W_BEST) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1
-	@echo "" >> ../out/fa-blend/$(BLEND)-output.txt
+
+	@$(foreach k,$(K_VALUES), \
+		$(foreach w,$(W_VALUES), \
+			echo "Running k=$(k), w=$(w)" >> ../out/fa-blend/$(BLEND)-output.txt; \
+			$(TIME) ../bin/$(BLEND) $(FASTA) $(k) $(w) >> ../out/fa-blend/$(BLEND)-output.txt 2>&1; \
+			echo "" >> ../out/fa-blend/$(BLEND)-output.txt; \
+		) \
+	)
+
 
 ######################################################################
 # ERROR TOLERANCE EXPERIMENT

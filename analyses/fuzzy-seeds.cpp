@@ -294,10 +294,10 @@ int main(int argc, char **argv) {
     std::cout << "Unique Cores: " << format_int(count_once) << std::endl;
 
 	// Uniqueness Ratio
-    std::cout << "Uniqueness %: " << format_double(((double)count_once) / ((double)core_counts)) << std::endl;
+    std::cout << "Uniqueness %: " << format_double(((double)count_once) / ((double)core_counts), 5) << std::endl;
 
 	// Relaxed Uniqueness Ratio
-    std::cout << "Relaxed-Uniqueness %: " << format_double(((double)relaxed_unique) / ((double)core_counts)) << std::endl;
+    std::cout << "Relaxed-Uniqueness %: " << format_double(((double)relaxed_unique) / ((double)core_counts), 5) << std::endl;
 
 	// Execution Time
 	std::cout << "Exec. Time (sec): " << format_double(((double)durations.count()) / 1000) << std::endl;

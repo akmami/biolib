@@ -43,7 +43,7 @@ int store_seqs(const char *path, ref_seq **seqs) {
 
     char *fai_path = (char *)malloc(strlen(path) + 5);
     if (fai_path == NULL) {
-        fprintf(stderr, "Error: Memory allocation failed\n");
+        fprintf(stderr, "[ERROR] Memory allocation failed\n");
         exit(-1);
     }
     sprintf(fai_path, "%s.fai", path);
@@ -54,7 +54,7 @@ int store_seqs(const char *path, ref_seq **seqs) {
 
     FILE *fai = fopen(fai_path, "r");
     if (!fai) {
-        fprintf(stderr, "Error: Couldn't open %s\n", fai_path);
+        fprintf(stderr, "[ERROR] Couldn't open %s\n", fai_path);
         exit(-1);
     }
 
@@ -63,13 +63,13 @@ int store_seqs(const char *path, ref_seq **seqs) {
     }
 
     if (chrom_index == 0) {
-        fprintf(stderr, "Error: Index file is empty.\n");
+        fprintf(stderr, "[ERROR] Index file is empty.\n");
         exit(-1);
     }
     
     *seqs = (ref_seq *)malloc(sizeof(ref_seq) * chrom_index);
     if (!(*seqs)) {
-        fprintf(stderr, "Error: Couldn't allocate memory to ref sequences\n");
+        fprintf(stderr, "[ERROR] Couldn't allocate memory to ref sequences\n");
         exit(-1);
     }
 
@@ -111,13 +111,13 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
 
     all_fuzzy_seeds = (uint128_t *)malloc(sizeof(uint128_t) * all_fuzzy_seeds_cap);
     if (!all_fuzzy_seeds) {
-        fprintf(stderr, "Error: couldn't allocate array\n");
+        fprintf(stderr, "[ERROR] couldn't allocate array\n");
         exit(1);
     }
 
     gzFile fp = gzopen(p->fasta, "r");
     if (!fp) {
-        fprintf(stderr, "Error: cannot open reference %s\n", p->fasta);
+        fprintf(stderr, "[ERROR] cannot open reference %s\n", p->fasta);
         exit(1);
     }
 
@@ -143,7 +143,7 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
                 }
                 uint128_t *temp = (uint128_t *)realloc(all_fuzzy_seeds, sizeof(uint128_t) * all_fuzzy_seeds_cap);
                 if (!temp) {
-                    fprintf(stderr, "Error: couldn't reallocate array\n");
+                    fprintf(stderr, "[ERROR] couldn't reallocate array\n");
                     exit(1);
                 }
                 all_fuzzy_seeds = temp;
@@ -169,7 +169,7 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
 
     uint128_t *temp_all_fuzzy_seeds = (uint128_t *)malloc(sizeof(uint128_t) * all_fuzzy_seeds_len);
     if (!temp_all_fuzzy_seeds) {
-        fprintf(stderr, "Error: couldn't allocate array\n");
+        fprintf(stderr, "[ERROR] couldn't allocate array\n");
     }
     memcpy(temp_all_fuzzy_seeds, all_fuzzy_seeds, sizeof(uint128_t) * all_fuzzy_seeds_len);
 
@@ -250,17 +250,15 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
 
     *fuzzy_seeds_len = relaxed_fuzzy_seeds_len;
 
-    printf("Unique %lu / %lu (%.2f), Relaxted %lu (%.2f)\n", unique_fuzzy_seeds_len, all_fuzzy_seeds_len, (double)unique_fuzzy_seeds_len / (double)all_fuzzy_seeds_len, relaxed_fuzzy_seeds_len, (double)relaxed_fuzzy_seeds_len / (double)all_fuzzy_seeds_len);
+    printf("[INFO] Unique %lu / %lu (%.2f), Relaxted %lu (%.2f)\n", unique_fuzzy_seeds_len, all_fuzzy_seeds_len, (double)unique_fuzzy_seeds_len / (double)all_fuzzy_seeds_len, relaxed_fuzzy_seeds_len, (double)relaxed_fuzzy_seeds_len / (double)all_fuzzy_seeds_len);
 
     return unique_fuzzy_seeds_len;
 }
 
-int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read, uint64_t read_span, uint64_t ref_pos, uint64_t ref_id, uint64_t read_id, int ref_strand, int read_strand) {
+int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read, uint64_t read_span, uint64_t ref_pos, uint64_t ref_id, uint64_t read_id, int ref_strand, int read_strand, uint64_t read_pos, int len) {
     
     int ref_len = ref_span;
     int read_len = read_span;
-
-    if (ref_span != read_span) return 0;
 
     if (abs(ref_len - read_len) > BAND) return 0; // why bother?
 
@@ -274,60 +272,80 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
     if (read_strand) reverse_complement(read, read_buf, read_len);
     else memcpy(read_buf, read, read_len);
 
-    static int dp[MAX_LEN + 1][2 * BAND + 1];
-    static int bt[MAX_LEN + 1][2 * BAND + 1];
+    static int dp[MAX_LEN + 1][MAX_LEN + 1];
+    static int bt[MAX_LEN + 1][MAX_LEN + 1];
 
     // init
     for (int i = 0; i <= ref_len; i++)
-        for (int k = 0; k <= 2 * BAND; k++)
-            dp[i][k] = NEG_INF;
+        for (int j = 0; j <= read_len; j++)
+            dp[i][j] = NEG_INF;
 
-    dp[0][BAND] = 0;
+    // free leading gaps within band
+    for (int j = 0; j <= BAND && j <= read_len; j++)
+        dp[0][j] = 0;
+
+    for (int i = 0; i <= BAND && i <= ref_len; i++)
+        dp[i][0] = 0;
 
     // DP
     for (int i = 1; i <= ref_len; i++) {
 
-        int j_start = 0 < i - BAND ? i - BAND : 0;
-        int j_end = read_len < i + BAND ? read_len : i + BAND;
+        int j_start = (i - BAND > 1) ? i - BAND : 1;
+        int j_end   = (i + BAND < read_len) ? i + BAND : read_len;
 
         for (int j = j_start; j <= j_end; j++) {
-
-            int k = j - i + BAND;
-            if (k < 0 || 2 * BAND < k) continue;
 
             int best = NEG_INF, op = -1;
 
             // diagonal
-            if (0 < j && dp[i-1][k] != NEG_INF) {
-                int d = dp[i-1][k] + (ref_buf[i-1] == read_buf[j-1] ? MATCH : MISMATCH);
-                if (d > best) { best = d; op = 0; }
-            }
+            int diag = dp[i-1][j-1] + (ref_buf[i-1] == read_buf[j-1] ? MATCH : MISMATCH);
+            best = diag; 
+            op = 0; // diagonal movement
 
-            // deletion
-            if (k + 1 <= 2 * BAND && dp[i-1][k+1] != NEG_INF) {
-                int d = dp[i-1][k+1] + GAP;
-                if (d > best) { best = d; op = 1; }
+            int del = dp[i-1][j] + GAP;
+            if (del > best) {
+                best = del;
+                op = 1; // downward movement
             }
 
             // insertion
-            if (0 < j && k > 0 && dp[i][k-1] != NEG_INF) {
-                int d = dp[i][k-1] + GAP;
-                if (d > best) { best = d; op = 2; }
+            int ins = dp[i][j-1] + GAP;
+            if (ins > best) {
+                best = ins;
+                op = 2; // right movement
             }
 
-            dp[i][k] = best;
-            bt[i][k] = op;
+            dp[i][j] = best;
+            bt[i][j] = op;
         }
     }
 
-    int end_k = read_len - ref_len + BAND;
-    if (end_k < 0 || end_k > 2 * BAND) return 0;
-
-    // alignment acceptance
-    if (dp[ref_len][end_k] < 0) return 0;
-
     // traceback
-    int i = ref_len, j = read_len, k = end_k;
+    int best = NEG_INF;
+    int bi = ref_len, bj = read_len;
+
+    // last row
+    for (int j = 0; j <= read_len; j++) {
+        if (dp[ref_len][j] > best) {
+            best = dp[ref_len][j];
+            bi = ref_len;
+            bj = j;
+        }
+    }
+
+    // last column
+    for (int i = 0; i <= ref_len; i++) {
+        if (dp[i][read_len] > best) {
+            best = dp[i][read_len];
+            bi = i;
+            bj = read_len;
+        }
+    }
+
+    if (best < MIN_SCORE) return 0;
+
+    int i = bi, j = bj;
+
     int mismatches = 0;
 #ifdef __DEBUG
     char aln_ref[2*MAX_LEN];
@@ -336,7 +354,7 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
     int aln_len = 0;
 #endif
     while (i > 0 && j > 0) {
-        int op = bt[i][k];
+        int op = bt[i][j];
 
         if (op == 0) {
 #ifdef __DEBUG
@@ -347,7 +365,7 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
             if (ref_buf[i-1] != read_buf[j-1]) {
                 mismatches++;
                 if (i-1 != 0 && j-1 != 0 && i != ref_len && j != read_len) {
-                    printf("SNP\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, ref_buf[i-1], read_buf[j-1]);
+                    // printf("SNP\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, ref_buf[i-1], read_buf[j-1]);
                 }
             }
             i--; j--;
@@ -357,22 +375,24 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
             aln_ref[aln_len]  = ref_buf[i-1];
             aln_read[aln_len] = '-';
             aln_mid[aln_len]  = ' ';
+            mismatches++;
 #endif
             if (i-1 != 0 && j-1 != 0 && i != ref_len && j != read_len) {
-                printf("DEL\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, ref_buf[i-1], '-');
+                // printf("DEL\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, ref_buf[i-1], '-');
             }
-            i--; k++;
+            i--;
         }
         else {
 #ifdef __DEBUG
             aln_ref[aln_len]  = '-';
             aln_read[aln_len] = read_buf[j-1];
             aln_mid[aln_len]  = ' ';
+            mismatches++;
 #endif
             if (i-1 != 0 && j-1 != 0 && i != ref_len && j != read_len) {
-                printf("INS\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, '-', read_buf[j-1]);
+                // printf("INS\tREFID=%lu\tREADID=%lu\tPOS=%lu\tREF=%c\tALT=%c\n", ref_id, read_id, ref_pos + i - 1, '-', read_buf[j-1]);
             }
-            j--; k--;
+            j--;
         }
 
         // if (mismatches > 20) return 0;
@@ -390,30 +410,35 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
             aln_ref[x] = aln_ref[aln_len - 1 - x];
             aln_ref[aln_len - 1 - x] = t;
 
-            t = aln_read[x];
-            aln_read[x] = aln_read[aln_len - 1 - x];
-            aln_read[aln_len - 1 - x] = t;
-
             t = aln_mid[x];
             aln_mid[x] = aln_mid[aln_len - 1 - x];
             aln_mid[aln_len - 1 - x] = t;
+
+            t = aln_read[x];
+            aln_read[x] = aln_read[aln_len - 1 - x];
+            aln_read[aln_len - 1 - x] = t;
         }
 
         aln_ref[aln_len]  = '\0';
-        aln_read[aln_len] = '\0';
         aln_mid[aln_len]  = '\0';
+        aln_read[aln_len] = '\0';
 
         // print alignment
         printf("\n");
-        printf("REF : %s (%lu)\n", aln_ref, ref_span);
+        printf("REF : %s\n", aln_ref);
         printf("      %s\n", aln_mid);
-        printf("READ: %s (%lu)\n", aln_read, read_span);
+        printf("READ: %s\n", aln_read);
 
         printf("--------------------------------------------------------------------------\n");
 
         // print seqs
-        printf("REF:  %.*s\n", (int)ref_span, ref);
-        printf("READ: %.*s\n\n", (int)read_span, read);
+        printf("REF:  %.*s (%d)\n", ref_len, ref, ref_len);
+        printf("READ: %.*s (%d)\n\n", read_len, read, read_len);
+
+        for (int i = 0; i < read_len; i++) {
+            printf("'%c' ", read[i]);
+        }
+        printf(" read: %lu, Pos: %lu, Len: %d\n", read_id, read_pos, len);
     }
 #endif
     return mismatches;
