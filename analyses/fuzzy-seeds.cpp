@@ -26,18 +26,18 @@ void analyze(uint128_t *minimizers, uint64_t len,
 
 		bool isOverlapped = false;
 
-		if (BLEND_GET_LENGTH(minimizers[0]) < DISTANCE_LENGTH) {
-			lengths[BLEND_GET_LENGTH(minimizers[0])] += 1;
+		if (__blend_get_length(minimizers[0]) < DISTANCE_LENGTH) {
+			lengths[__blend_get_length(minimizers[0])] += 1;
 		} else {
-			lengthsXL.push_back(BLEND_GET_LENGTH(minimizers[0]));
+			lengthsXL.push_back(__blend_get_length(minimizers[0]));
 		}
 
 		for (uint64_t i = 1; i < len; i++) {
 
-			uint32_t current_start = BLEND_GET_INDEX(minimizers[i]);
-			uint32_t current_end = current_start + BLEND_GET_LENGTH(minimizers[i]);
-			uint32_t previous_start = BLEND_GET_INDEX(minimizers[i-1]);
-			uint32_t previous_end = previous_start + BLEND_GET_LENGTH(minimizers[i-1]);
+			uint32_t current_start = __blend_get_index(minimizers[i]);
+			uint32_t current_end = current_start + __blend_get_length(minimizers[i]);
+			uint32_t previous_start = __blend_get_index(minimizers[i-1]);
+			uint32_t previous_end = previous_start + __blend_get_length(minimizers[i-1]);
 
 			if (current_start <= previous_end) {
 				contiguous_counts += 1;
@@ -117,7 +117,7 @@ void process(std::string &sequence,
 	analyze(minimizers, minimizers_len, contiguous_counts, distances, distancesXL, distance_gaps, lengths, lengthsXL, length_gaps, overlap_lengths, overlap_lengthsXL, overlap_length_gaps);
 
     for (uint64_t index = 0; index < minimizers_len; index++) {
-        distinct_cores[BLEND_GET_KMER(minimizers[index])]++;
+        distinct_cores[__blend_get_kmer(minimizers[index])]++;
     }
 
 	std::cout << "Length of the processed sequence: " << format_int(sequence.size()) << std::endl;
@@ -233,16 +233,16 @@ int main(int argc, char **argv) {
 					
 					minimizers_len = blend_sketch(sequence.c_str(), sequence.length(), window, kmer_size, BLEND_BITS_HIFI, BLEND_NEIGHBOR_NUMBER_HIFI, 0, &minimizers);
 
-					if (minimizers_len && distinct_cores[BLEND_GET_KMER(minimizers[0])] == 1) {
+					if (minimizers_len && distinct_cores[__blend_get_kmer(minimizers[0])] == 1) {
 						relaxed_unique++;
 					}
 
 					for (uint64_t i = 1; i < minimizers_len-1; i++) {
-						if (distinct_cores[BLEND_GET_KMER(minimizers[i])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[i-1])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[i+1])] == 1) {
+						if (distinct_cores[__blend_get_kmer(minimizers[i])] == 1 || distinct_cores[__blend_get_kmer(minimizers[i-1])] == 1 || distinct_cores[__blend_get_kmer(minimizers[i+1])] == 1) {
 							relaxed_unique++;
 						}
 					}
-					if (distinct_cores[BLEND_GET_KMER(minimizers[0])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[minimizers_len+1])] == 1) {
+					if (distinct_cores[__blend_get_kmer(minimizers[0])] == 1 || distinct_cores[__blend_get_kmer(minimizers[minimizers_len+1])] == 1) {
 						relaxed_unique++;
 					}
 					if (minimizers_len) free(minimizers);
@@ -261,12 +261,12 @@ int main(int argc, char **argv) {
 			
 			minimizers_len = blend_sketch(sequence.c_str(), sequence.length(), window, kmer_size, BLEND_BITS_HIFI, BLEND_NEIGHBOR_NUMBER_HIFI, 0, &minimizers);
 
-			if (minimizers_len && distinct_cores[BLEND_GET_KMER(minimizers[0])] == 1) {
+			if (minimizers_len && distinct_cores[__blend_get_kmer(minimizers[0])] == 1) {
 				relaxed_unique++;
 			}
 
 			for (uint64_t i = 1; i < minimizers_len; i++) {
-				if (distinct_cores[BLEND_GET_KMER(minimizers[i])] == 1 || distinct_cores[BLEND_GET_KMER(minimizers[i-1])] == 1) {
+				if (distinct_cores[__blend_get_kmer(minimizers[i])] == 1 || distinct_cores[__blend_get_kmer(minimizers[i-1])] == 1) {
 					relaxed_unique++;
 				}
 			}

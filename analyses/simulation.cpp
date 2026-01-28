@@ -426,9 +426,9 @@ void evaluate(const minimizer_sketch *ref, const minimizer_sketch *read, int *TP
                     }
                 }
             } else if (p->sketch_type == BLEND) {
-                if (BLEND_GET_KMER(ref->anchors[i]) == BLEND_GET_KMER(read->anchors[j])) {
-                    matches[m].ref_pos = BLEND_GET_INDEX(ref->anchors[i]);
-                    matches[m++].read_pos = BLEND_GET_INDEX(read->anchors[j]);
+                if (__blend_get_kmer(ref->anchors[i]) == __blend_get_kmer(read->anchors[j])) {
+                    matches[m].ref_pos = __blend_get_index(ref->anchors[i]);
+                    matches[m++].read_pos = __blend_get_index(read->anchors[j]);
 
                     if (m == capacity) {
                         capacity *= 2;

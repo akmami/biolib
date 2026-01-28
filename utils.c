@@ -181,7 +181,7 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
     for (uint64_t i = 0; i < all_fuzzy_seeds_len; ) {
         uint64_t j = i + 1;
 
-        while (j < all_fuzzy_seeds_len && BLEND_GET_KMER(all_fuzzy_seeds[j]) == BLEND_GET_KMER(all_fuzzy_seeds[i])) {
+        while (j < all_fuzzy_seeds_len && __blend_get_kmer(all_fuzzy_seeds[j]) == __blend_get_kmer(all_fuzzy_seeds[i])) {
             j++;
         }
 
@@ -195,7 +195,7 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
     map32_t *temp_index_table = *index_table;
     for (uint64_t i = 0; i < unique_fuzzy_seeds_len; i++) {
         khint_t k; int absent;
-        k = map32_put(temp_index_table, BLEND_GET_KMER(all_fuzzy_seeds[i]), &absent);
+        k = map32_put(temp_index_table, __blend_get_kmer(all_fuzzy_seeds[i]), &absent);
         kh_val(temp_index_table, k) = i;
     }
 
@@ -207,20 +207,20 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
 
     // todo: handle i=0 and i=all_fuzzy_seeds_len-1
     for (uint64_t i = 1; i < all_fuzzy_seeds_len - 1; i++) {
-        khint_t k = map32_get(temp_index_table, BLEND_GET_KMER(temp_all_fuzzy_seeds[i]));
+        khint_t k = map32_get(temp_index_table, __blend_get_kmer(temp_all_fuzzy_seeds[i]));
         
         if (k < kh_end(temp_index_table)) { // if unique
             continue;
         }
 
-        k = map32_get(temp_index_table, BLEND_GET_KMER(temp_all_fuzzy_seeds[i-1]));
+        k = map32_get(temp_index_table, __blend_get_kmer(temp_all_fuzzy_seeds[i-1]));
 
         if (k < kh_end(temp_index_table)) { // if left is unique
             all_fuzzy_seeds[relaxed_fuzzy_seeds_len++] = temp_all_fuzzy_seeds[i];
             continue;
         }
 
-        k = map32_get(temp_index_table, BLEND_GET_KMER(temp_all_fuzzy_seeds[i+1]));
+        k = map32_get(temp_index_table, __blend_get_kmer(temp_all_fuzzy_seeds[i+1]));
 
         if (k < kh_end(temp_index_table)) { // if right is unique
             all_fuzzy_seeds[relaxed_fuzzy_seeds_len++] = temp_all_fuzzy_seeds[i];
@@ -237,12 +237,12 @@ uint64_t process_fasta(params *p, uint128_t **fuzzy_seeds, uint64_t *fuzzy_seeds
     for (uint64_t i = unique_fuzzy_seeds_len; i < relaxed_fuzzy_seeds_len; ) {
         uint64_t j = i + 1;
 
-        while (j < relaxed_fuzzy_seeds_len && BLEND_GET_KMER(all_fuzzy_seeds[j]) == BLEND_GET_KMER(all_fuzzy_seeds[i])) {
+        while (j < relaxed_fuzzy_seeds_len && __blend_get_kmer(all_fuzzy_seeds[j]) == __blend_get_kmer(all_fuzzy_seeds[i])) {
             j++;
         }
 
         khint_t k; int absent;
-        k = map32_put(temp_index_table, BLEND_GET_KMER(all_fuzzy_seeds[i]), &absent);
+        k = map32_put(temp_index_table, __blend_get_kmer(all_fuzzy_seeds[i]), &absent);
         kh_val(temp_index_table, k) = i;
 
         i = j;
@@ -347,7 +347,7 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
     int i = bi, j = bj;
 
     int mismatches = 0;
-#ifdef __DEBUG
+#ifdef __DEBUG__
     char aln_ref[2*MAX_LEN];
     char aln_read[2*MAX_LEN];
     char aln_mid[2*MAX_LEN];
@@ -357,7 +357,7 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
         int op = bt[i][j];
 
         if (op == 0) {
-#ifdef __DEBUG
+#ifdef __DEBUG__
             aln_ref[aln_len]  = ref_buf[i-1];
             aln_read[aln_len] = read_buf[j-1];
             aln_mid[aln_len]  = (ref_buf[i-1] == read_buf[j-1]) ? '|' : '*';
@@ -371,7 +371,7 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
             i--; j--;
         }
         else if (op == 1) {
-#ifdef __DEBUG
+#ifdef __DEBUG__
             aln_ref[aln_len]  = ref_buf[i-1];
             aln_read[aln_len] = '-';
             aln_mid[aln_len]  = ' ';
@@ -383,7 +383,7 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
             i--;
         }
         else {
-#ifdef __DEBUG
+#ifdef __DEBUG__
             aln_ref[aln_len]  = '-';
             aln_read[aln_len] = read_buf[j-1];
             aln_mid[aln_len]  = ' ';
@@ -396,11 +396,11 @@ int banded_align_and_report(const char *ref, uint64_t ref_span, const char *read
         }
 
         // if (mismatches > 20) return 0;
-#ifdef __DEBUG
+#ifdef __DEBUG__
         aln_len++;
 #endif
     }
-#ifdef __DEBUG
+#ifdef __DEBUG__
     if (mismatches) {
         // reverse alignment strings
         for (int x = 0; x < aln_len / 2; x++) {
