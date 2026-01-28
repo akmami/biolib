@@ -12,11 +12,11 @@ extern "C" {
 #include <string.h>
 #include <x86intrin.h>
 
-#define __blend_get_kmer(minimizer) ((minimizer).x >> 14)
-#define __blend_get_length(minimizer) ((minimizer).x & 0x3FFF)
+#define __blend_get_kmer(minimizer) 		((minimizer).x >> 14)
+#define __blend_get_length(minimizer) 		((minimizer).x & 0x3FFF)
 #define __blend_get_reference_id(minimizer) (((minimizer).y >> 32))
-#define __blend_get_index(minimizer) (((minimizer).y & 0xFFFFFFFF) >> 1)
-#define __blend_get_strand(minimizer) (((minimizer).y & 1))
+#define __blend_get_index(minimizer) 		(((minimizer).y & 0xFFFFFFFF) >> 1)
+#define __blend_get_strand(minimizer) 		(((minimizer).y & 1))
 
 #ifndef __UINT128_T__
 #define __UINT128_T__
